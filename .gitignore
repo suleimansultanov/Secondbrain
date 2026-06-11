@@ -31,6 +31,9 @@ yarn-error.log*
 *.key
 *.mobileprovision
 
+# Obsidian app config (contains Local REST API key + private cert — never commit)
+.obsidian/
+
 # OS / editor
 .DS_Store
 Thumbs.db
