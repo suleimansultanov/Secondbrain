@@ -31,14 +31,22 @@ created: 2026-06-11
 
 ## C. Database & multi-tenancy 🔒 (critical)
 
-- [ ] Tables: `organizations`, `users`, `contacts`, `interactions`
-- [ ] Enable `pgvector` extension
-- [ ] Add `embedding vector` column to `interactions`
-- [ ] `org_id` FK on every tenant-scoped table
-- [ ] RLS policies scoped to `org_id` on **all** tables (incl. vector search path)
-- [ ] Role separation: `admin` (sees all org data) vs `agent` (own data only)
-- [ ] Seed script: 2 orgs, users in each
-- [ ] **TEST: confirm RLS blocks cross-org reads/writes (automated)**
+- [x] Tables: `organizations`, `users`, `contacts`, `interactions`
+      → `backend/db/migrations/20260611000002_tables.sql`
+- [x] Enable `pgvector` extension
+      → `backend/db/migrations/20260611000001_extensions.sql`
+- [x] Add `embedding vector(1536)` column to `interactions`
+      → `backend/db/migrations/20260611000002_tables.sql`
+- [x] `org_id` FK on every tenant-scoped table (`users`, `contacts`, `interactions`)
+      → `backend/db/migrations/20260611000002_tables.sql`
+- [x] RLS policies scoped to `org_id` on **all** tables (incl. vector search path)
+      → `backend/db/migrations/20260611000003_rls.sql`
+- [x] Role separation: `admin` (sees all org data) vs `agent` (own data only)
+      → `backend/db/migrations/20260611000003_rls.sql`
+- [x] Seed script: 2 orgs, admin + agent in each, sample contacts/interactions
+      → `backend/db/seed.py`
+- [x] **TEST: confirm RLS blocks cross-org reads/writes (automated)**
+      → `backend/tests/test_rls_isolation.py`
 
 ## D. Backend skeleton
 
@@ -77,4 +85,11 @@ Once green → move to **Phase 1 (MVP Core)**: first data source → index → `
 
 ## Notes / decisions
 
-- _(log key decisions here as we go)_
+- **Block C (2026-06-11):** All DB schema and RLS work implemented in
+  `agent/phase0-block-c-rls` branch. Session settings `app.current_org_id`,
+  `app.current_user_id`, and `app.current_user_role` are used as the tenant
+  context signal. `FORCE ROW LEVEL SECURITY` is set on all tables so even
+  table-owner connections are subject to policies. Chose `AS RESTRICTIVE`
+  policies (most restrictive option) to ensure deny-by-default when session
+  settings are not initialised. ivfflat index used for ANN search; HNSW
+  alternative is commented in the index migration for future upgrade.
