@@ -11,18 +11,20 @@
 -- The settings are LOCAL to the current transaction and are cleared
 -- automatically when the transaction ends — no risk of bleed-through.
 --
--- The helper below returns NULL (not an error) when a setting is not set,
--- which means an unauthenticated query sees no rows at all (deny-by-default).
-
--- ---------------------------------------------------------------------------
--- Convenience helpers (inlined in policies for portability)
--- ---------------------------------------------------------------------------
--- current_setting('app.current_org_id',  true)  -> uuid  or NULL
--- current_setting('app.current_user_id', true)  -> uuid  or NULL
--- current_setting('app.current_user_role', true) -> text or NULL
+-- POLICY MODEL
+-- ------------
+-- Each table has a single PERMISSIVE policy. In PostgreSQL, restrictive
+-- policies only *narrow* access already granted by a permissive policy; a
+-- table with ONLY restrictive policies exposes zero rows to everyone. We
+-- therefore use permissive policies that both (a) grant org-scoped access and
+-- (b) deny-by-default: when a session setting is not initialised,
+-- current_setting(..., true) returns NULL, the comparison evaluates to NULL
+-- (not TRUE), and the row is hidden. Unauthenticated queries see nothing.
 --
--- The second argument 'true' makes current_setting() return NULL instead of
--- raising an error when the setting has not been initialised.
+-- current_setting('app.current_org_id',  true)   -> text or NULL
+-- current_setting('app.current_user_id', true)   -> text or NULL
+-- current_setting('app.current_user_role', true) -> text or NULL
+-- (the second argument 'true' returns NULL instead of raising when unset.)
 
 -- ===========================================================================
 -- 1. organizations
@@ -36,7 +38,6 @@ DROP POLICY IF EXISTS orgs_isolation ON organizations;
 -- An org row is visible only when its id matches the session's current org.
 -- No role distinction needed at this level — the org itself is the boundary.
 CREATE POLICY orgs_isolation ON organizations
-    AS RESTRICTIVE
     FOR ALL
     USING (
         id::text = current_setting('app.current_org_id', true)
@@ -55,7 +56,6 @@ DROP POLICY IF EXISTS users_isolation ON users;
 
 -- Admin sees all users in the org; agent sees only themselves.
 CREATE POLICY users_isolation ON users
-    AS RESTRICTIVE
     FOR ALL
     USING (
         org_id::text = current_setting('app.current_org_id', true)
@@ -79,7 +79,6 @@ DROP POLICY IF EXISTS contacts_isolation ON contacts;
 
 -- Admin sees all contacts in the org; agent sees only contacts they own.
 CREATE POLICY contacts_isolation ON contacts
-    AS RESTRICTIVE
     FOR ALL
     USING (
         org_id::text = current_setting('app.current_org_id', true)
@@ -110,7 +109,6 @@ DROP POLICY IF EXISTS interactions_isolation ON interactions;
 -- The same policy applies to vector-similarity queries — the embedding
 -- index is only scanned AFTER the RLS filter prunes cross-org rows.
 CREATE POLICY interactions_isolation ON interactions
-    AS RESTRICTIVE
     FOR ALL
     USING (
         org_id::text = current_setting('app.current_org_id', true)
@@ -130,8 +128,15 @@ CREATE POLICY interactions_isolation ON interactions
     );
 
 -- ---------------------------------------------------------------------------
--- NOTE: FORCE ROW LEVEL SECURITY ensures that table *owners* (superusers
--- acting as the table owner) are also subject to these policies. Application
--- queries should use a limited-privilege role (e.g. supabase's `anon` or
--- `authenticated`) — they are always subject to RLS regardless of this flag.
+-- NOTES
+-- ---------------------------------------------------------------------------
+-- 1. FORCE ROW LEVEL SECURITY ensures that table *owners* are also subject to
+--    these policies. Application queries should use a limited-privilege role
+--    (e.g. Supabase's `authenticated`) — always subject to RLS.
+--
+-- 2. SEEDING / ADMIN MIGRATIONS: because FORCE RLS applies to the owner too,
+--    bulk inserts that do NOT set the session settings (e.g. backend/db/seed.py)
+--    must run as a role that BYPASSES RLS — a superuser or a role with the
+--    BYPASSRLS attribute (on Supabase, the `postgres` / service role). Otherwise
+--    the WITH CHECK clauses reject the inserts with SQLSTATE 42501.
 -- ---------------------------------------------------------------------------
