@@ -118,6 +118,36 @@ breach and **must be fixed before merging**.
 
 ---
 
+## Authentication & tenant scoping
+
+Requests authenticate with a Supabase **access token** (`Authorization: Bearer <jwt>`).
+The API verifies the HS256 signature with `SUPABASE_JWT_SECRET` and reads three
+things from the token: `sub` (user id), `org_id`, and `app_role` (`admin` | `agent`).
+
+`org_id` and `app_role` are **not** present in a default Supabase token — add them
+with a **custom access token hook** (Supabase → Auth → Hooks). We deliberately use
+`app_role` (not the reserved `role` claim, which Supabase uses for the Postgres
+role `authenticated`/`anon`).
+
+On every request, `app/api/deps.py` opens a transaction and pushes the context
+into the session via `set_config(..., is_local => true)`, which the RLS policies
+read:
+
+```
+app.current_org_id  = <org_id>
+app.current_user_id = <sub>
+app.current_user_role = <app_role>
+```
+
+> **Connect with a non-bypass role.** The app's `DATABASE_URL` must use a role
+> that does **not** bypass RLS (e.g. a dedicated `app_user`), otherwise the
+> policies are skipped. The Supabase `postgres`/service role is only for
+> migrations and seeding.
+
+Smoke test: `GET /me` returns the verified context, or `401` without a valid token.
+
+---
+
 ## Layout
 ```
 app/
