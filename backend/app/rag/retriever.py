@@ -7,6 +7,15 @@ chunks are ever considered — cross-tenant retrieval is impossible.
 from __future__ import annotations
 
 
+def to_vector_literal(embedding: list[float]) -> str:
+    """Format an embedding as a pgvector text literal, e.g. ``[0.1,0.2,...]``.
+
+    pgvector's input format is bracketed; passing a raw Python list adapts to a
+    Postgres array (``{...}``), which does not match ``::vector``.
+    """
+    return "[" + ",".join(repr(float(x)) for x in embedding) + "]"
+
+
 class PostgresRetriever:
     def __init__(self, cursor) -> None:
         self._cur = cursor
@@ -20,7 +29,7 @@ class PostgresRetriever:
             ORDER BY embedding <=> %s::vector
             LIMIT %s
             """,
-            (embedding, top_k),
+            (to_vector_literal(embedding), top_k),
         )
         rows = await self._cur.fetchall()
         results: list[tuple[str, str]] = []

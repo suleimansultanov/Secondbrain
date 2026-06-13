@@ -57,7 +57,9 @@ CREATE INDEX IF NOT EXISTS idx_chunks_org_id
 CREATE INDEX IF NOT EXISTS idx_chunks_interaction_id
     ON interaction_chunks (interaction_id);
 
-CREATE INDEX IF NOT EXISTS idx_chunks_embedding_ivfflat
+-- HNSW (pgvector >= 0.5): good recall regardless of dataset size. ivfflat with
+-- a fixed `lists` value silently returns no rows on tiny datasets (it probes
+-- only a subset of lists), so HNSW is the safer default for an MVP.
+CREATE INDEX IF NOT EXISTS idx_chunks_embedding_hnsw
     ON interaction_chunks
-    USING ivfflat (embedding vector_cosine_ops)
-    WITH (lists = 100);
+    USING hnsw (embedding vector_cosine_ops);
