@@ -27,6 +27,12 @@ class Settings(BaseSettings):
     # Redis (arq job queue for background ingestion)
     redis_url: str = "redis://localhost:6379"
 
+    # AI providers
+    openai_api_key: str = ""  # embeddings (text-embedding-3-small)
+    anthropic_api_key: str = ""  # answers (Claude)
+    embedding_model: str = "text-embedding-3-small"
+    answer_model: str = "claude-haiku-4-5-20251001"
+
     # Supabase Auth — JWTs are HS256-signed with this secret.
     supabase_jwt_secret: str = ""
     # Supabase access tokens carry aud="authenticated".

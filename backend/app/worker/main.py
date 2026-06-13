@@ -31,8 +31,13 @@ async def shutdown(ctx: dict) -> None:
 
 
 def redis_settings() -> RedisSettings:
-    """Build arq RedisSettings from the configured REDIS_URL."""
-    return RedisSettings.from_dsn(get_settings().redis_url)
+    """Build arq RedisSettings from the configured REDIS_URL.
+
+    Falls back to localhost if REDIS_URL is unset/blank so importing the worker
+    never crashes (e.g. in tests or when Redis isn't configured yet).
+    """
+    url = get_settings().redis_url or "redis://localhost:6379"
+    return RedisSettings.from_dsn(url)
 
 
 class WorkerSettings:
