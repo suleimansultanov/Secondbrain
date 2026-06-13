@@ -1,0 +1,10 @@
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+# Default rule set (pyflakes + pycodestyle errors) keeps CI strict but low-noise.
+# Expand [tool.ruff.lint].select later (e.g. "I", "UP", "B") as the codebase grows.

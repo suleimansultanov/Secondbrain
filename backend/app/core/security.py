@@ -12,6 +12,7 @@ the org from the ``org_id`` claim and the application role from ``app_role``.
 > would break the database connection role, so the application role lives under
 > a separate claim name.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass

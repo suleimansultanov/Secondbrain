@@ -37,8 +37,8 @@ import pytest
 # ---------------------------------------------------------------------------
 # Deterministic UUIDs — must match backend/db/seed.py
 # ---------------------------------------------------------------------------
-ORG_A_ID  = uuid.UUID("00000000-0000-0000-0000-000000000001")
-ORG_B_ID  = uuid.UUID("00000000-0000-0000-0000-000000000002")
+ORG_A_ID = uuid.UUID("00000000-0000-0000-0000-000000000001")
+ORG_B_ID = uuid.UUID("00000000-0000-0000-0000-000000000002")
 
 USER_A_ADMIN_ID = uuid.UUID("00000000-0000-0000-0001-000000000001")
 USER_A_AGENT_ID = uuid.UUID("00000000-0000-0000-0001-000000000002")
@@ -55,6 +55,7 @@ INTERACTION_B1_ID = uuid.UUID("00000000-0000-0002-0002-000000000001")
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _database_url() -> str:
     url = os.environ.get("DATABASE_URL")
@@ -83,7 +84,7 @@ def _org_session(
             cur.execute("SET LOCAL app.current_user_id = %s;", (str(user_id),))
             cur.execute("SET LOCAL app.current_user_role = %s;", (role,))
             yield cur
-            conn.rollback()   # ← always roll back; tests must not persist
+            conn.rollback()  # ← always roll back; tests must not persist
     finally:
         conn.close()
 
@@ -98,6 +99,7 @@ def _count(cur: psycopg2.extensions.cursor, table: str, org_id: uuid.UUID) -> in
 # Fixtures
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture(scope="module")
 def db_url() -> str:
     return _database_url()
@@ -106,6 +108,7 @@ def db_url() -> str:
 # ---------------------------------------------------------------------------
 # 1. Self-access (positive tests) — must see own org's data
 # ---------------------------------------------------------------------------
+
 
 class TestSelfAccess:
     """Scoped to Org A; all queries against Org A data must succeed."""
@@ -144,6 +147,7 @@ class TestSelfAccess:
 # 2. Cross-org isolation (critical) — Org A session MUST NOT see Org B data
 # ---------------------------------------------------------------------------
 
+
 class TestCrossOrgIsolation:
     """Scoped to Org A; every assertion against Org B data must return zero rows."""
 
@@ -163,16 +167,14 @@ class TestCrossOrgIsolation:
         with _org_session(ORG_A_ID, USER_A_ADMIN_ID, "admin") as cur:
             n = _count(cur, "users", ORG_B_ID)
         assert n == 0, (
-            f"ISOLATION BREACH: Org A session can read {n} user row(s) "
-            f"belonging to Org B."
+            f"ISOLATION BREACH: Org A session can read {n} user row(s) " f"belonging to Org B."
         )
 
     def test_cannot_read_other_org_contacts(self, db_url: str) -> None:
         with _org_session(ORG_A_ID, USER_A_ADMIN_ID, "admin") as cur:
             n = _count(cur, "contacts", ORG_B_ID)
         assert n == 0, (
-            f"ISOLATION BREACH: Org A session can read {n} contact row(s) "
-            f"belonging to Org B."
+            f"ISOLATION BREACH: Org A session can read {n} contact row(s) " f"belonging to Org B."
         )
 
     def test_cannot_read_other_org_interactions(self, db_url: str) -> None:
@@ -194,9 +196,9 @@ class TestCrossOrgIsolation:
                     """,
                     (str(ORG_B_ID), str(USER_A_AGENT_ID)),
                 )
-        assert exc_info.value is not None, (
-            "ISOLATION BREACH: INSERT into Org B from Org A session was NOT rejected."
-        )
+        assert (
+            exc_info.value is not None
+        ), "ISOLATION BREACH: INSERT into Org B from Org A session was NOT rejected."
 
     def test_cannot_write_into_other_org_interactions(self, db_url: str) -> None:
         """WITH CHECK policy must reject an INSERT carrying org_id = Org B."""
@@ -209,14 +211,15 @@ class TestCrossOrgIsolation:
                     """,
                     (str(ORG_B_ID), str(USER_A_AGENT_ID)),
                 )
-        assert exc_info.value is not None, (
-            "ISOLATION BREACH: INSERT into Org B from Org A session was NOT rejected."
-        )
+        assert (
+            exc_info.value is not None
+        ), "ISOLATION BREACH: INSERT into Org B from Org A session was NOT rejected."
 
 
 # ---------------------------------------------------------------------------
 # 3. Vector similarity isolation — ANN search must not cross org boundaries
 # ---------------------------------------------------------------------------
+
 
 class TestVectorSimilarityIsolation:
     """A cosine-similarity query run in an Org A session must return zero
@@ -272,6 +275,7 @@ class TestVectorSimilarityIsolation:
 # ---------------------------------------------------------------------------
 # 4. Agent-level isolation (agent cannot read other agents' data within org)
 # ---------------------------------------------------------------------------
+
 
 class TestAgentLevelIsolation:
     """Within a single org, an agent must only see their own contacts/interactions."""

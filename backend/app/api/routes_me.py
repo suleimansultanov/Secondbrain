@@ -2,6 +2,7 @@
 
 Serves as the first end-to-end check that auth + tenant scoping are wired up.
 """
+
 from __future__ import annotations
 
 from fastapi import APIRouter
