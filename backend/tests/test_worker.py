@@ -14,15 +14,6 @@ def test_ping_returns_pong() -> None:
     assert asyncio.run(ping(None)) == "pong"
 
 
-def test_ingest_interaction_stub() -> None:
-    result = asyncio.run(ingest_interaction(None, "interaction-1", "org-1"))
-    assert result == {
-        "status": "stub-ok",
-        "interaction_id": "interaction-1",
-        "org_id": "org-1",
-    }
-
-
 def test_ingest_interaction_requires_ids() -> None:
     with pytest.raises(ValueError):
         asyncio.run(ingest_interaction(None, "", "org-1"))

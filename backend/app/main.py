@@ -7,7 +7,7 @@ from typing import AsyncIterator
 
 from fastapi import FastAPI
 
-from app.api import routes_me
+from app.api import routes_brain, routes_me
 from app.core.config import get_settings
 from app.core.db import Database
 
@@ -29,6 +29,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 app = FastAPI(title="SecondBrain API", version="0.0.1", lifespan=lifespan)
 
 app.include_router(routes_me.router)
+app.include_router(routes_brain.router)
 
 
 @app.get("/health")
