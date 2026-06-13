@@ -36,10 +36,19 @@ class Settings(BaseSettings):
     embedding_model: str = "text-embedding-3-small"
     answer_model: str = "claude-haiku-4-5-20251001"
 
-    # Supabase Auth — JWTs are HS256-signed with this secret.
+    # Supabase Auth.
+    # New projects sign JWTs with asymmetric keys (ES256/RS256); the backend
+    # verifies them against the project's JWKS endpoint, derived from supabase_url.
+    supabase_url: str = ""
+    # Legacy fallback: HS256 shared secret (only if a project still uses it).
     supabase_jwt_secret: str = ""
     # Supabase access tokens carry aud="authenticated".
     jwt_audience: str = "authenticated"
+
+    @property
+    def jwks_url(self) -> str:
+        """Supabase JWKS endpoint (public keys) for verifying asymmetric JWTs."""
+        return f"{self.supabase_url.rstrip('/')}/auth/v1/.well-known/jwks.json"
 
     # Names of the custom claims the access-token hook must add (see
     # app/core/security.py for why we avoid the reserved `role` claim).

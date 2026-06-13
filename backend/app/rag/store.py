@@ -7,6 +7,7 @@ Operates through a cursor whose transaction is already scoped to the tenant
 from __future__ import annotations
 
 from app.rag.ingestion import ChunkRecord
+from app.rag.retriever import to_vector_literal
 
 
 class PostgresChunkStore:
@@ -41,9 +42,9 @@ class PostgresChunkStore:
                 """
                 INSERT INTO interaction_chunks
                     (org_id, interaction_id, user_id, chunk_index, content, embedding)
-                SELECT i.org_id, i.id, i.user_id, %s, %s, %s
+                SELECT i.org_id, i.id, i.user_id, %s, %s, %s::vector
                 FROM interactions i
                 WHERE i.id = %s
                 """,
-                (rec.chunk_index, rec.content, rec.embedding, interaction_id),
+                (rec.chunk_index, rec.content, to_vector_literal(rec.embedding), interaction_id),
             )
