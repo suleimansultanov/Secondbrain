@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 from typing import AsyncIterator
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.api import routes_brain, routes_me
 from app.core.config import get_settings
@@ -27,6 +28,15 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 
 app = FastAPI(title="SecondBrain API", version="0.0.1", lifespan=lifespan)
+
+_origins = [o.strip() for o in get_settings().cors_origins.split(",") if o.strip()]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.include_router(routes_me.router)
 app.include_router(routes_brain.router)
