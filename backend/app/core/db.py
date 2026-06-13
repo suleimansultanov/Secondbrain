@@ -12,6 +12,7 @@ We use ``set_config(key, value, is_local => true)`` rather than a string-built
 ``is_local => true`` scopes the settings to the current transaction, exactly
 like ``SET LOCAL``.
 """
+
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
@@ -46,9 +47,7 @@ class Database:
 
     async def connect(self) -> None:
         if self._pool is None:
-            self._pool = AsyncConnectionPool(
-                conninfo=self._settings.database_url, open=False
-            )
+            self._pool = AsyncConnectionPool(conninfo=self._settings.database_url, open=False)
             await self._pool.open()
 
     async def close(self) -> None:
@@ -57,9 +56,7 @@ class Database:
             self._pool = None
 
     @asynccontextmanager
-    async def tenant_transaction(
-        self, ctx: AuthContext
-    ) -> AsyncIterator[psycopg.AsyncCursor]:
+    async def tenant_transaction(self, ctx: AuthContext) -> AsyncIterator[psycopg.AsyncCursor]:
         """Yield a cursor inside a transaction scoped to *ctx*.
 
         The tenant settings are applied first; on exit the transaction commits

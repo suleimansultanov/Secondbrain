@@ -27,16 +27,14 @@ try:
     import psycopg2
     from psycopg2.extras import execute_values
 except ImportError:  # pragma: no cover
-    sys.exit(
-        "psycopg2 is not installed.  Run: pip install psycopg2-binary"
-    )
+    sys.exit("psycopg2 is not installed.  Run: pip install psycopg2-binary")
 
 # ---------------------------------------------------------------------------
 # Fixed UUIDs so the seed is deterministic and the isolation test can use the
 # same IDs without a round-trip.  These are NOT secrets.
 # ---------------------------------------------------------------------------
-ORG_A_ID  = uuid.UUID("00000000-0000-0000-0000-000000000001")
-ORG_B_ID  = uuid.UUID("00000000-0000-0000-0000-000000000002")
+ORG_A_ID = uuid.UUID("00000000-0000-0000-0000-000000000001")
+ORG_B_ID = uuid.UUID("00000000-0000-0000-0000-000000000002")
 
 USER_A_ADMIN_ID = uuid.UUID("00000000-0000-0000-0001-000000000001")
 USER_A_AGENT_ID = uuid.UUID("00000000-0000-0000-0001-000000000002")
@@ -92,10 +90,34 @@ def seed(conn: "psycopg2.connection") -> None:
                 ON CONFLICT (id) DO NOTHING;
                 """,
                 [
-                    (str(USER_A_ADMIN_ID), str(ORG_A_ID), "admin@acme.example",   "Alice Admin",  "admin"),
-                    (str(USER_A_AGENT_ID), str(ORG_A_ID), "agent@acme.example",   "Bob Agent",    "agent"),
-                    (str(USER_B_ADMIN_ID), str(ORG_B_ID), "admin@globex.example", "Carol Admin",  "admin"),
-                    (str(USER_B_AGENT_ID), str(ORG_B_ID), "agent@globex.example", "Dave Agent",   "agent"),
+                    (
+                        str(USER_A_ADMIN_ID),
+                        str(ORG_A_ID),
+                        "admin@acme.example",
+                        "Alice Admin",
+                        "admin",
+                    ),
+                    (
+                        str(USER_A_AGENT_ID),
+                        str(ORG_A_ID),
+                        "agent@acme.example",
+                        "Bob Agent",
+                        "agent",
+                    ),
+                    (
+                        str(USER_B_ADMIN_ID),
+                        str(ORG_B_ID),
+                        "admin@globex.example",
+                        "Carol Admin",
+                        "admin",
+                    ),
+                    (
+                        str(USER_B_AGENT_ID),
+                        str(ORG_B_ID),
+                        "agent@globex.example",
+                        "Dave Agent",
+                        "agent",
+                    ),
                 ],
             )
 
@@ -108,10 +130,38 @@ def seed(conn: "psycopg2.connection") -> None:
                 ON CONFLICT (id) DO NOTHING;
                 """,
                 [
-                    (str(CONTACT_A1_ID), str(ORG_A_ID), str(USER_A_AGENT_ID), "Acme Contact One",   "c1@acme.example",   "+1-555-0001"),
-                    (str(CONTACT_A2_ID), str(ORG_A_ID), str(USER_A_AGENT_ID), "Acme Contact Two",   "c2@acme.example",   "+1-555-0002"),
-                    (str(CONTACT_B1_ID), str(ORG_B_ID), str(USER_B_AGENT_ID), "Globex Contact One", "c1@globex.example", "+1-555-0003"),
-                    (str(CONTACT_B2_ID), str(ORG_B_ID), str(USER_B_AGENT_ID), "Globex Contact Two", "c2@globex.example", "+1-555-0004"),
+                    (
+                        str(CONTACT_A1_ID),
+                        str(ORG_A_ID),
+                        str(USER_A_AGENT_ID),
+                        "Acme Contact One",
+                        "c1@acme.example",
+                        "+1-555-0001",
+                    ),
+                    (
+                        str(CONTACT_A2_ID),
+                        str(ORG_A_ID),
+                        str(USER_A_AGENT_ID),
+                        "Acme Contact Two",
+                        "c2@acme.example",
+                        "+1-555-0002",
+                    ),
+                    (
+                        str(CONTACT_B1_ID),
+                        str(ORG_B_ID),
+                        str(USER_B_AGENT_ID),
+                        "Globex Contact One",
+                        "c1@globex.example",
+                        "+1-555-0003",
+                    ),
+                    (
+                        str(CONTACT_B2_ID),
+                        str(ORG_B_ID),
+                        str(USER_B_AGENT_ID),
+                        "Globex Contact Two",
+                        "c2@globex.example",
+                        "+1-555-0004",
+                    ),
                 ],
             )
 
@@ -129,29 +179,41 @@ def seed(conn: "psycopg2.connection") -> None:
                 """,
                 [
                     (
-                        str(INTERACTION_A1_ID), str(ORG_A_ID), str(USER_A_AGENT_ID),
-                        str(CONTACT_A1_ID), "call",
+                        str(INTERACTION_A1_ID),
+                        str(ORG_A_ID),
+                        str(USER_A_AGENT_ID),
+                        str(CONTACT_A1_ID),
+                        "call",
                         "Discussed Q3 renewal with Acme Contact One.",
                         None,
                         embedding_literal,
                     ),
                     (
-                        str(INTERACTION_A2_ID), str(ORG_A_ID), str(USER_A_AGENT_ID),
-                        str(CONTACT_A2_ID), "email",
+                        str(INTERACTION_A2_ID),
+                        str(ORG_A_ID),
+                        str(USER_A_AGENT_ID),
+                        str(CONTACT_A2_ID),
+                        "email",
                         "Sent proposal to Acme Contact Two.",
                         None,
                         embedding_literal,
                     ),
                     (
-                        str(INTERACTION_B1_ID), str(ORG_B_ID), str(USER_B_AGENT_ID),
-                        str(CONTACT_B1_ID), "message",
+                        str(INTERACTION_B1_ID),
+                        str(ORG_B_ID),
+                        str(USER_B_AGENT_ID),
+                        str(CONTACT_B1_ID),
+                        "message",
                         "Followed up with Globex Contact One via Slack.",
                         None,
                         embedding_literal,
                     ),
                     (
-                        str(INTERACTION_B2_ID), str(ORG_B_ID), str(USER_B_AGENT_ID),
-                        str(CONTACT_B2_ID), "crm_note",
+                        str(INTERACTION_B2_ID),
+                        str(ORG_B_ID),
+                        str(USER_B_AGENT_ID),
+                        str(CONTACT_B2_ID),
+                        "crm_note",
                         "Logged call notes for Globex Contact Two.",
                         None,
                         embedding_literal,

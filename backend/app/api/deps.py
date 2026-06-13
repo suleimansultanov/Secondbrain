@@ -1,4 +1,5 @@
 """FastAPI dependencies for authentication and tenant-scoped DB access."""
+
 from __future__ import annotations
 
 from typing import Annotated, AsyncIterator

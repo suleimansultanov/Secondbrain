@@ -4,6 +4,7 @@ These tests do NOT require a database — they cover the JWT verification logic
 and the (pure) building of the session-setting parameters. The live RLS
 behaviour is covered separately by tests/test_rls_isolation.py.
 """
+
 from __future__ import annotations
 
 import time
@@ -44,6 +45,7 @@ def _make_token(**overrides) -> str:
 # verify_access_token
 # ---------------------------------------------------------------------------
 
+
 def test_valid_token_returns_context() -> None:
     ctx = verify_access_token(_make_token(), _settings())
     assert ctx == AuthContext(user_id=USER_ID, org_id=ORG_ID, role="agent")
@@ -56,8 +58,13 @@ def test_admin_role_accepted() -> None:
 
 def test_bad_signature_rejected() -> None:
     forged = jwt.encode(
-        {"sub": USER_ID, "aud": "authenticated", "org_id": ORG_ID, "app_role": "agent",
-         "exp": int(time.time()) + 3600},
+        {
+            "sub": USER_ID,
+            "aud": "authenticated",
+            "org_id": ORG_ID,
+            "app_role": "agent",
+            "exp": int(time.time()) + 3600,
+        },
         "wrong-secret",
         algorithm="HS256",
     )
@@ -79,8 +86,12 @@ def test_missing_org_id_rejected() -> None:
     token = _make_token()
     # rebuild without org_id
     token = jwt.encode(
-        {"sub": USER_ID, "aud": "authenticated", "app_role": "agent",
-         "exp": int(time.time()) + 3600},
+        {
+            "sub": USER_ID,
+            "aud": "authenticated",
+            "app_role": "agent",
+            "exp": int(time.time()) + 3600,
+        },
         SECRET,
         algorithm="HS256",
     )
@@ -101,6 +112,7 @@ def test_empty_token_rejected() -> None:
 # ---------------------------------------------------------------------------
 # tenant_context_params
 # ---------------------------------------------------------------------------
+
 
 def test_tenant_context_params() -> None:
     ctx = AuthContext(user_id=USER_ID, org_id=ORG_ID, role="admin")
