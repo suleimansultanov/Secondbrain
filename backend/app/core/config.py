@@ -21,6 +21,9 @@ class Settings(BaseSettings):
 
     app_env: str = "development"
 
+    # Comma-separated list of allowed browser origins (the web dashboard).
+    cors_origins: str = "http://localhost:3000"
+
     # Database (Postgres + pgvector, EU region)
     database_url: str = ""
 
