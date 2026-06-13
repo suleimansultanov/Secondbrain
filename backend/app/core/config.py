@@ -24,6 +24,9 @@ class Settings(BaseSettings):
     # Database (Postgres + pgvector, EU region)
     database_url: str = ""
 
+    # Redis (arq job queue for background ingestion)
+    redis_url: str = "redis://localhost:6379"
+
     # Supabase Auth — JWTs are HS256-signed with this secret.
     supabase_jwt_secret: str = ""
     # Supabase access tokens carry aud="authenticated".

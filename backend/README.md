@@ -148,6 +148,32 @@ Smoke test: `GET /me` returns the verified context, or `401` without a valid tok
 
 ---
 
+## Background worker (arq)
+
+Heavy ingestion work (normalize → chunk → embed → store vectors) runs off the
+request path on an [arq](https://arq-docs.helpmanual.io/) worker backed by Redis.
+The API enqueues a job and returns immediately; the worker consumes it.
+
+Set `REDIS_URL` (defaults to `redis://localhost:6379`), then run the worker
+alongside the API:
+
+```bash
+cd backend
+arq app.worker.main.WorkerSettings
+```
+
+Phase 0 ships skeleton tasks only (`ping`, `ingest_interaction` stub) to prove
+the queue end to end. Enqueue from the API with:
+
+```python
+from app.worker.queue import get_arq_pool
+
+pool = await get_arq_pool()
+await pool.enqueue_job("ingest_interaction", interaction_id, org_id)
+```
+
+---
+
 ## Layout
 ```
 app/
