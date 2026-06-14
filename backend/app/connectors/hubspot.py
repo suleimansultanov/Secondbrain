@@ -7,6 +7,7 @@ pagination are unit-testable without network.
 
 from __future__ import annotations
 
+import logging
 import re
 from datetime import datetime, timezone
 
@@ -14,6 +15,8 @@ import httpx
 
 from app.connectors.base import RawContact, RawInteraction
 from app.core.config import get_settings
+
+logger = logging.getLogger("secondbrain.connectors")
 
 HUBSPOT_BASE = "https://api.hubapi.com"
 PAGE_LIMIT = 100
@@ -137,7 +140,19 @@ class HubSpotConnector:
     async def fetch_interactions(self, since: datetime | None = None) -> list[RawInteraction]:
         out: list[RawInteraction] = []
         for object_type, (props, mapper) in _OBJECTS.items():
-            objs = await self._list(f"/crm/v3/objects/{object_type}", props)
+            try:
+                objs = await self._list(f"/crm/v3/objects/{object_type}", props)
+            except httpx.HTTPStatusError as exc:
+                # A missing Private App scope on one object type (e.g. emails need
+                # `sales-email-read`) should not fail the whole sync — skip it.
+                if exc.response.status_code in (401, 403):
+                    logger.warning(
+                        "skipping HubSpot %s (HTTP %s — missing scope?)",
+                        object_type,
+                        exc.response.status_code,
+                    )
+                    continue
+                raise
             for o in objs:
                 rec = mapper(o)
                 if rec.content and (
