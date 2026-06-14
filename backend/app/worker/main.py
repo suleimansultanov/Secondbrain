@@ -14,10 +14,16 @@ from __future__ import annotations
 
 import logging
 
+from arq import cron
 from arq.connections import RedisSettings
 
 from app.core.config import get_settings
-from app.worker.tasks import ingest_interaction, ping, sync_hubspot
+from app.worker.tasks import (
+    ingest_interaction,
+    ping,
+    scheduled_hubspot_sync,
+    sync_hubspot,
+)
 
 logger = logging.getLogger("secondbrain.worker")
 
@@ -44,6 +50,9 @@ class WorkerSettings:
     """arq worker configuration (referenced by the `arq` CLI)."""
 
     functions = [ping, ingest_interaction, sync_hubspot]
+    # Daily HubSpot sync at 03:00 UTC. No-op unless a sync target is configured
+    # (HUBSPOT_SYNC_ORG_ID / HUBSPOT_SYNC_OWNER_USER_ID).
+    cron_jobs = [cron(scheduled_hubspot_sync, hour=3, minute=0)]
     on_startup = startup
     on_shutdown = shutdown
     redis_settings = redis_settings()

@@ -26,6 +26,10 @@ class Settings(BaseSettings):
 
     # Database (Postgres + pgvector, EU region)
     database_url: str = ""
+    # Role assumed inside every tenant transaction so RLS is enforced even when
+    # the connection role (e.g. Supabase `postgres`) has BYPASSRLS. Set blank to
+    # disable the switch (e.g. local Postgres without a Supabase-style role).
+    db_app_role: str = "authenticated"
 
     # Redis (arq job queue for background ingestion)
     redis_url: str = "redis://localhost:6379"
@@ -38,6 +42,11 @@ class Settings(BaseSettings):
 
     # Connectors
     hubspot_access_token: str = ""  # HubSpot Private App token (CRM sync)
+    # Daily scheduled sync target. Both must be set for the cron to run; if
+    # blank, the scheduled sync is skipped (safe default). Multi-tenant later
+    # will replace this with a per-org connector config table.
+    hubspot_sync_org_id: str = ""
+    hubspot_sync_owner_user_id: str = ""
 
     # Supabase Auth.
     # New projects sign JWTs with asymmetric keys (ES256/RS256); the backend

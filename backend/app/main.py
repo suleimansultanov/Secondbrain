@@ -8,7 +8,7 @@ from typing import AsyncIterator
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import routes_brain, routes_me
+from app.api import routes_brain, routes_connectors, routes_me
 from app.core.config import get_settings
 from app.core.db import Database
 
@@ -40,6 +40,7 @@ app.add_middleware(
 
 app.include_router(routes_me.router)
 app.include_router(routes_brain.router)
+app.include_router(routes_connectors.router)
 
 
 @app.get("/health")

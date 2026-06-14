@@ -15,6 +15,7 @@ like ``SET LOCAL``.
 
 from __future__ import annotations
 
+import re
 from contextlib import asynccontextmanager
 from typing import AsyncIterator
 
@@ -31,6 +32,17 @@ _SET_TENANT_SQL = (
     "set_config('app.current_user_id', %(user_id)s, true), "
     "set_config('app.current_user_role', %(role)s,  true)"
 )
+
+# A Postgres role name we are willing to interpolate into `SET LOCAL ROLE`
+# (which cannot be parameterised). Trusted config, but validated defensively.
+_ROLE_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+
+
+def set_role_sql(role: str) -> str:
+    """Return a safe `SET LOCAL ROLE` statement for *role* (validated identifier)."""
+    if not _ROLE_RE.match(role):
+        raise ValueError(f"Invalid db_app_role {role!r}; expected a plain identifier.")
+    return f'SET LOCAL ROLE "{role}"'
 
 
 def tenant_context_params(ctx: AuthContext) -> dict[str, str]:
@@ -68,5 +80,9 @@ class Database:
         async with self._pool.connection() as conn:
             async with conn.transaction():
                 async with conn.cursor() as cur:
+                    # Switch to a non-BYPASSRLS role so RLS policies are enforced
+                    # for the rest of this transaction (cleared on commit/rollback).
+                    if self._settings.db_app_role:
+                        await cur.execute(set_role_sql(self._settings.db_app_role))
                     await cur.execute(_SET_TENANT_SQL, tenant_context_params(ctx))
                     yield cur
