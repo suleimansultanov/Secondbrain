@@ -36,6 +36,9 @@ class Settings(BaseSettings):
     embedding_model: str = "text-embedding-3-small"
     answer_model: str = "claude-haiku-4-5-20251001"
 
+    # Connectors
+    hubspot_access_token: str = ""  # HubSpot Private App token (CRM sync)
+
     # Supabase Auth.
     # New projects sign JWTs with asymmetric keys (ES256/RS256); the backend
     # verifies them against the project's JWKS endpoint, derived from supabase_url.
