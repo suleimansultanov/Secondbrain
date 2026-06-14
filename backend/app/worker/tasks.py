@@ -15,6 +15,7 @@ from app.connectors.hubspot import HubSpotConnector
 from app.connectors.store_crm import PostgresSyncStore
 from app.connectors.sync import sync_crm
 from app.core.config import get_settings
+from app.core.db import set_role_sql
 from app.rag.embeddings import Embedder
 from app.rag.ingestion import run_ingestion
 from app.rag.store import PostgresChunkStore
@@ -28,6 +29,14 @@ _SET_ORG_CTX = (
     "set_config('app.current_user_id', %(org)s, true), "
     "set_config('app.current_user_role', 'admin', true)"
 )
+
+
+async def _enter_tenant_ctx(cur, org_id: str) -> None:
+    """Switch to the RLS-enforced role and set the org context for this txn."""
+    role = get_settings().db_app_role
+    if role:
+        await cur.execute(set_role_sql(role))
+    await cur.execute(_SET_ORG_CTX, {"org": org_id})
 
 
 async def ping(ctx: dict | None = None) -> str:
@@ -49,7 +58,7 @@ async def ingest_interaction(ctx: dict | None, interaction_id: str, org_id: str)
     async with await psycopg.AsyncConnection.connect(settings.database_url) as conn:
         async with conn.transaction():
             async with conn.cursor() as cur:
-                await cur.execute(_SET_ORG_CTX, {"org": org_id})
+                await _enter_tenant_ctx(cur, org_id)
                 store = PostgresChunkStore(cur)
                 return await run_ingestion(store, embedder, interaction_id)
 
@@ -73,7 +82,28 @@ async def sync_hubspot(ctx: dict | None, org_id: str, owner_user_id: str) -> dic
     async with await psycopg.AsyncConnection.connect(settings.database_url) as conn:
         async with conn.transaction():
             async with conn.cursor() as cur:
-                await cur.execute(_SET_ORG_CTX, {"org": org_id})
+                await _enter_tenant_ctx(cur, org_id)
                 store = PostgresSyncStore(cur, org_id, owner_user_id)
                 result = await sync_crm(connector, store, enqueue, org_id)
     return {"contacts": result.contacts, "interactions_new": result.interactions_new}
+
+
+async def scheduled_hubspot_sync(ctx: dict | None = None) -> dict[str, Any]:
+    """Cron entrypoint: enqueue a HubSpot sync for the configured org.
+
+    Reads the target org/owner from settings. If either is blank the sync is
+    skipped — so a fresh deployment never runs an unconfigured sync. Enqueues
+    the real `sync_hubspot` job rather than syncing inline, keeping cron cheap.
+    """
+    settings = get_settings()
+    org_id = settings.hubspot_sync_org_id
+    owner_user_id = settings.hubspot_sync_owner_user_id
+    if not org_id or not owner_user_id:
+        logger.info("scheduled_hubspot_sync: no sync target configured; skipping")
+        return {"status": "skipped"}
+
+    redis = ctx.get("redis") if isinstance(ctx, dict) else None
+    if redis is not None:
+        await redis.enqueue_job("sync_hubspot", org_id, owner_user_id)
+    logger.info("scheduled_hubspot_sync: enqueued sync for org=%s", org_id)
+    return {"status": "enqueued", "org_id": org_id}

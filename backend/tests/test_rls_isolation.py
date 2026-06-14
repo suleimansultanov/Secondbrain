@@ -67,6 +67,13 @@ def _database_url() -> str:
     return url
 
 
+# The connection role (Supabase `postgres`) has BYPASSRLS, so these tests MUST
+# assume the same non-bypass role the app uses at runtime, or RLS is inert and
+# the tests prove nothing. Override with RLS_TEST_DB_ROLE; set blank to skip the
+# switch (only for a connection role that already lacks BYPASSRLS).
+_APP_ROLE = os.environ.get("RLS_TEST_DB_ROLE", "authenticated")
+
+
 @contextmanager
 def _org_session(
     org_id: uuid.UUID,
@@ -80,6 +87,9 @@ def _org_session(
     conn.autocommit = False
     try:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            if _APP_ROLE:
+                # Assume the runtime role so RLS is actually enforced.
+                cur.execute(f'SET LOCAL ROLE "{_APP_ROLE}";')
             cur.execute("SET LOCAL app.current_org_id  = %s;", (str(org_id),))
             cur.execute("SET LOCAL app.current_user_id = %s;", (str(user_id),))
             cur.execute("SET LOCAL app.current_user_role = %s;", (role,))
