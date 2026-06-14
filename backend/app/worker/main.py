@@ -17,7 +17,7 @@ import logging
 from arq.connections import RedisSettings
 
 from app.core.config import get_settings
-from app.worker.tasks import ingest_interaction, ping
+from app.worker.tasks import ingest_interaction, ping, sync_hubspot
 
 logger = logging.getLogger("secondbrain.worker")
 
@@ -43,7 +43,7 @@ def redis_settings() -> RedisSettings:
 class WorkerSettings:
     """arq worker configuration (referenced by the `arq` CLI)."""
 
-    functions = [ping, ingest_interaction]
+    functions = [ping, ingest_interaction, sync_hubspot]
     on_startup = startup
     on_shutdown = shutdown
     redis_settings = redis_settings()

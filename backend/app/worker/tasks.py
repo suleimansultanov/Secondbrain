@@ -11,6 +11,9 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from app.connectors.hubspot import HubSpotConnector
+from app.connectors.store_crm import PostgresSyncStore
+from app.connectors.sync import sync_crm
 from app.core.config import get_settings
 from app.rag.embeddings import Embedder
 from app.rag.ingestion import run_ingestion
@@ -49,3 +52,28 @@ async def ingest_interaction(ctx: dict | None, interaction_id: str, org_id: str)
                 await cur.execute(_SET_ORG_CTX, {"org": org_id})
                 store = PostgresChunkStore(cur)
                 return await run_ingestion(store, embedder, interaction_id)
+
+
+async def sync_hubspot(ctx: dict | None, org_id: str, owner_user_id: str) -> dict[str, Any]:
+    """Pull contacts + activities from HubSpot into ``org_id`` and ingest new ones."""
+    if not org_id or not owner_user_id:
+        raise ValueError("org_id and owner_user_id are required")
+
+    import psycopg
+
+    settings = get_settings()
+    connector = HubSpotConnector()
+
+    async def enqueue(interaction_id: str, oid: str) -> None:
+        redis = ctx.get("redis") if isinstance(ctx, dict) else None
+        if redis is not None:
+            await redis.enqueue_job("ingest_interaction", interaction_id, oid)
+
+    logger.info("sync_hubspot: org=%s", org_id)
+    async with await psycopg.AsyncConnection.connect(settings.database_url) as conn:
+        async with conn.transaction():
+            async with conn.cursor() as cur:
+                await cur.execute(_SET_ORG_CTX, {"org": org_id})
+                store = PostgresSyncStore(cur, org_id, owner_user_id)
+                result = await sync_crm(connector, store, enqueue, org_id)
+    return {"contacts": result.contacts, "interactions_new": result.interactions_new}
